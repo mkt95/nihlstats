@@ -1,0 +1,44 @@
+#!/bin/zsh
+
+declare -A nihl
+nihl=(
+    [BEE]=bees-ihc-4
+    [BRS]=bristol-pitbulls-3
+    [HUL]=hull-seahawks-2
+    [LDS]=leeds-knights-3
+    [MIL]=milton-keynes-lightning-3
+    [PET]=peterborough-phantoms-3
+    [RAI]=raiders-ihc-4
+    [SHE]=sheffield-steeldogs-4
+    [SOL]=solway-sharks-3
+    [SWI]=swindon-wildcats-4
+    [TEL]=telford-tigers-4
+)
+
+[ -d data ] || mkdir data
+
+for team stub in ${(kv)nihl}; do
+    echo $team
+    http https://nihlstats.wordpress.com/2023/09/01/${stub}/ > data/${(L)team}.html
+    pup 'figure:nth-of-type(2) table json{}' < data/${(L)team}.html | jq --raw-output '.[0].children[0].children | map(.children | map(.text // .children[0].text))[] | @csv' > data/${(L)team}-teamsummary.csv
+    pup 'figure:nth-of-type(3) table json{}' < data/${(L)team}.html | jq --raw-output '.[0].children[0].children | map(.children | map(.text // .children[0].text))[] | @csv' | tail -n +2 > data/${(L)team}-teameffectiveness.csv
+    pup 'figure:nth-of-type(4) table json{}' < data/${(L)team}.html | jq --raw-output '.[0].children[0].children | map(.children | map(.text // .children[0].text))[] | @csv' | tail -n +3 > data/${(L)team}-playerstats-pre.csv
+    pup 'figure:nth-of-type(5) table json{}' < data/${(L)team}.html | jq --raw-output '.[0].children[0].children | map(.children | map(.text // .children[0].text))[] | @csv' > data/${(L)team}-nettiestats.csv
+    pup 'figure:nth-of-type(6) table json{}' < data/${(L)team}.html | jq --raw-output '.[0].children[0].children | map(.children | map(.text // .children[0].text))[] | @csv' > data/${(L)team}-gamelog.csv
+    cat - data/${(L)team}-playerstats-pre.csv > data/${(L)team}-playerstats.csv <<EOF
+"#","Player","Pos","GP","G","A","PTS","PIM","G-EV","G-PP","G-SH","G-GW","A-EV","A-PP","A-SH"
+EOF
+    rm data/${(L)team}-playerstats-pre.csv
+done
+
+echo "LEAGUE"
+http https://nihlstats.wordpress.com/2023/08/22/national-league-tables-2/ > data/nihl.html
+pup 'figure:nth-of-type(1) table json{}' < data/nihl.html | jq --raw-output '.[0].children[0].children | map(.children | map(.text // .children[0].text))[] | @csv' > data/leaguetable.csv
+
+echo "METADATA"
+cat - > data/metadata.csv <<EOF
+"Effective date","Credit"
+"$(date -jI)","Data courtesy of NIHLStats"
+EOF
+
+rm data/*html

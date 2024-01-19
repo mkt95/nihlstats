@@ -35,6 +35,13 @@ echo "LEAGUE"
 http https://nihlstats.wordpress.com/2023/08/22/national-league-tables-2/ > data/nihl.html
 pup 'figure:nth-of-type(1) table json{}' < data/nihl.html | jq --raw-output '.[0].children[0].children | map(.children | map(.text // .children[0].text))[] | @csv' > data/leaguetable.csv
 
+echo "FIXTURES"
+http https://nihlstats.wordpress.com/2023/08/22/fixtures-results-16/ > data/nihl-fixtures.html
+pup 'figure:nth-of-type(1) table json{}' < data/nihl-fixtures.html | jq --raw-output '.[0].children[0].children | map(.children | map(.text // .children[0].text))[] | @csv' > data/fixtures-pre.csv
+head -1 data/fixtures-pre.csv > data/fixtures.csv
+grep Wildcats data/fixtures-pre.csv >> data/fixtures.csv
+rm data/fixtures-pre.csv
+
 echo "METADATA"
 cat - > data/metadata.csv <<EOF
 "Effective date","Credit"
